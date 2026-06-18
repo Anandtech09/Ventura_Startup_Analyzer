@@ -3,7 +3,7 @@
 Ventura is an AI-powered startup strategist and analyzer that transforms raw business ideas into rich, interactive, data-driven strategy blueprints and instant landing page prototypes.
 
 <div align="center">
-  <img width="1200" height="475" alt="Ventura Dashboard Preview" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+  <img width="1200" height="475" alt="Ventura Dashboard Preview" src="https://ventura-startup-analyzer.vercel.app/images/brand/logo.png" />
 </div>
 
 ---
