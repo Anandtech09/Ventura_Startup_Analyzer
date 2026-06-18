@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Production builds
+dist/
+build/
+
+# Local Environment & Secrets
+.env*
+!.env.example
+
+# Databases (better-sqlite3)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Generated static assets
+public/images/logos/logo_*.png
+public/images/logos/logo_*.svg
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
