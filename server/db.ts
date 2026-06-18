@@ -1,6 +1,8 @@
 import Database from "better-sqlite3";
+import path from "path";
 
-const db = new Database("ventura.db");
+const dbPath = process.env.VERCEL ? "/tmp/ventura.db" : "ventura.db";
+const db = new Database(dbPath);
 db.pragma("foreign_keys = ON");
 
 // Initialize DB

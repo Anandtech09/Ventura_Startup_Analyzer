@@ -5,20 +5,20 @@ import generationRoutes from "./server/routes/generation.ts";
 
 dotenv.config();
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+const app = express();
+const PORT = 3000;
 
-  app.use(express.json());
-  app.use("/public", express.static("public"));
+app.use(express.json());
+app.use("/public", express.static("public"));
 
-  // API Routes
-  app.use("/api", analysisRoutes);
-  app.use("/api", generationRoutes);
+// API Routes
+app.use("/api", analysisRoutes);
+app.use("/api", generationRoutes);
 
+if (!process.env.VERCEL) {
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }
 
-startServer();
+export default app;
