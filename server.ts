@@ -1,7 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
-import analysisRoutes from "./server/routes/analysis.ts";
-import generationRoutes from "./server/routes/generation.ts";
+import analysisRoutes from "./server/routes/analysis.js";
+import generationRoutes from "./server/routes/generation.js";
 
 dotenv.config();
 

@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { generateWithGemini, GeminiError } from "../gemini-client.ts";
-import db from "../db.ts";
+import { generateWithGemini, GeminiError } from "../gemini-client.js";
+import db from "../db.js";
 import fs from "fs";
 import path from "path";
 
