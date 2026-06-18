@@ -6,12 +6,6 @@ import path from "path";
 
 const router = Router();
 
-// Ensure storage directory exists
-const LOGO_STORAGE_DIR = path.join(process.cwd(), "public", "images", "logos");
-if (!fs.existsSync(LOGO_STORAGE_DIR)) {
-  fs.mkdirSync(LOGO_STORAGE_DIR, { recursive: true });
-}
-
 const fallbackLogo = (startupName: string) => {
   const letter = (startupName || "V").charAt(0).toUpperCase();
   const colors = [
