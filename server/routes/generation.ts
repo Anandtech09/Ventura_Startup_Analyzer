@@ -1,8 +1,6 @@
 import { Router } from "express";
 import { generateWithGemini, GeminiError } from "../gemini-client.js";
-import db from "../db.js";
-import fs from "fs";
-import path from "path";
+import { dbRun, dbGet, dbAll } from "../db.js";
 
 const router = Router();
 
@@ -59,7 +57,7 @@ router.post("/generate-logo", async (req, res) => {
   const { startupId, name } = req.body;
   const imageUrl = fallbackLogo(name);
   if (startupId) {
-    db.prepare("UPDATE startups SET logo_url = ? WHERE id = ?").run(imageUrl, startupId);
+    await dbRun("UPDATE startups SET logo_url = ? WHERE id = ?", [imageUrl, startupId]);
   }
   res.json({ imageUrl });
 });
@@ -118,8 +116,8 @@ router.post("/generate-ui", async (req, res) => {
 
     if (startupId) {
       const id = parseInt(startupId);
-      db.prepare("UPDATE startups SET website_html = ? WHERE id = ?").run(html, id);
-      db.prepare("INSERT INTO website_history (startup_id, html) VALUES (?, ?)").run(id, html);
+      await dbRun("UPDATE startups SET website_html = ? WHERE id = ?", [html, id]);
+      await dbRun("INSERT INTO website_history (startup_id, html) VALUES (?, ?)", [id, html]);
     }
     res.json({ html });
 
@@ -128,8 +126,8 @@ router.post("/generate-ui", async (req, res) => {
     const html = fallbackTemplate(name, idea);
     if (startupId) {
       const id = parseInt(startupId);
-      db.prepare("UPDATE startups SET website_html = ? WHERE id = ?").run(html, id);
-      db.prepare("INSERT INTO website_history (startup_id, html) VALUES (?, ?)").run(id, html);
+      await dbRun("UPDATE startups SET website_html = ? WHERE id = ?", [html, id]);
+      await dbRun("INSERT INTO website_history (startup_id, html) VALUES (?, ?)", [id, html]);
     }
     res.json({ html });
   }
@@ -153,8 +151,8 @@ router.post("/refine-ui", async (req, res) => {
 
     if (startupId) {
       const id = parseInt(startupId);
-      db.prepare("UPDATE startups SET website_html = ? WHERE id = ?").run(html, id);
-      db.prepare("INSERT INTO website_history (startup_id, html) VALUES (?, ?)").run(id, html);
+      await dbRun("UPDATE startups SET website_html = ? WHERE id = ?", [html, id]);
+      await dbRun("INSERT INTO website_history (startup_id, html) VALUES (?, ?)", [id, html]);
     }
     res.json({ html });
   } catch (error: any) {
@@ -164,17 +162,27 @@ router.post("/refine-ui", async (req, res) => {
   }
 });
 
-router.get("/website-history/:startupId", (req, res) => {
-  const { startupId } = req.params;
-  const rows = db.prepare("SELECT * FROM website_history WHERE startup_id = ? ORDER BY created_at DESC").all(startupId);
-  res.json(rows);
+router.get("/website-history/:startupId", async (req, res) => {
+  try {
+    const { startupId } = req.params;
+    const rows = await dbAll("SELECT * FROM website_history WHERE startup_id = ? ORDER BY created_at DESC", [parseInt(startupId)]);
+    res.json(rows);
+  } catch (error) {
+    console.error("Website history error:", error);
+    res.status(500).json({ error: "Failed to fetch website history" });
+  }
 });
 
-router.get("/website-version/:id", (req, res) => {
-  const { id } = req.params;
-  const row = db.prepare("SELECT * FROM website_history WHERE id = ?").get(id) as any;
-  if (!row) return res.status(404).json({ error: "Version not found" });
-  res.json(row);
+router.get("/website-version/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const row = await dbGet("SELECT * FROM website_history WHERE id = ?", [parseInt(id)]);
+    if (!row) return res.status(404).json({ error: "Version not found" });
+    res.json(row);
+  } catch (error) {
+    console.error("Website version error:", error);
+    res.status(500).json({ error: "Failed to fetch website version" });
+  }
 });
 
 export default router;

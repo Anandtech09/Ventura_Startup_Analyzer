@@ -23,7 +23,7 @@ Ventura is an AI-powered startup strategist and analyzer that transforms raw bus
 ## Technology Stack
 
 * **Frontend**: React 19, TypeScript, Vite, Tailwind CSS, Lucide Icons, Recharts, Framer Motion (`motion/react`)
-* **Backend**: Node.js, Express, SQLite (`better-sqlite3`), Google Gemini Developer SDK (`@google/generative-ai`)
+* **Backend**: Node.js, Express, Turso/libSQL (production) + SQLite/`better-sqlite3` (local dev), Google Gemini Developer SDK (`@google/generative-ai`)
 
 ---
 

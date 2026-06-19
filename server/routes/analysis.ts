@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { generateWithGemini, GeminiError } from "../gemini-client.js";
-import db from "../db.js";
+import { dbRun, dbGet, dbAll } from "../db.js";
 
 const router = Router();
 
@@ -61,27 +61,30 @@ router.post("/analyze", async (req, res) => {
     let startupId: number;
     if (existingId) {
       // Check if startup exists
-      const exists = db.prepare("SELECT id FROM startups WHERE id = ?").get(existingId);
+      const exists = await dbGet("SELECT id FROM startups WHERE id = ?", [existingId]);
       if (!exists) {
         // If not, fallback to creating a new one
-        const stmt = db.prepare("INSERT INTO startups (name, idea, analysis) VALUES (?, ?, ?)");
-        const info = stmt.run(name || analysisData.suggestedNames?.[0] || "Unnamed Startup", idea, JSON.stringify(analysisData));
-        startupId = info.lastInsertRowid as number;
+        const info = await dbRun("INSERT INTO startups (name, idea, analysis) VALUES (?, ?, ?)", [
+          name || analysisData.suggestedNames?.[0] || "Unnamed Startup", idea, JSON.stringify(analysisData)
+        ]);
+        startupId = info.lastInsertRowid;
       } else {
         // Update existing startup record to point to latest analysis
-        const stmt = db.prepare("UPDATE startups SET analysis = ?, name = ? WHERE id = ?");
-        stmt.run(JSON.stringify(analysisData), name || analysisData.suggestedNames?.[0] || "Unnamed Startup", existingId);
+        await dbRun("UPDATE startups SET analysis = ?, name = ? WHERE id = ?", [
+          JSON.stringify(analysisData), name || analysisData.suggestedNames?.[0] || "Unnamed Startup", existingId
+        ]);
         startupId = existingId;
       }
     } else {
       // Create new startup record
-      const stmt = db.prepare("INSERT INTO startups (name, idea, analysis) VALUES (?, ?, ?)");
-      const info = stmt.run(name || analysisData.suggestedNames?.[0] || "Unnamed Startup", idea, JSON.stringify(analysisData));
-      startupId = info.lastInsertRowid as number;
+      const info = await dbRun("INSERT INTO startups (name, idea, analysis) VALUES (?, ?, ?)", [
+        name || analysisData.suggestedNames?.[0] || "Unnamed Startup", idea, JSON.stringify(analysisData)
+      ]);
+      startupId = info.lastInsertRowid;
     }
 
     // Always record analysis version history
-    db.prepare("INSERT INTO analysis_history (startup_id, analysis) VALUES (?, ?)").run(startupId, JSON.stringify(analysisData));
+    await dbRun("INSERT INTO analysis_history (startup_id, analysis) VALUES (?, ?)", [startupId, JSON.stringify(analysisData)]);
 
     res.json({ id: startupId, ...analysisData, name: name || analysisData.suggestedNames?.[0] });
   } catch (error: any) {
@@ -94,13 +97,18 @@ router.post("/analyze", async (req, res) => {
   }
 });
 
-router.get("/analysis-history/:startupId", (req, res) => {
+router.get("/analysis-history/:startupId", async (req, res) => {
   const { startupId } = req.params;
-  const rows = db.prepare("SELECT * FROM analysis_history WHERE startup_id = ? ORDER BY created_at DESC").all(startupId);
-  res.json(rows.map(row => ({
-    ...row,
-    analysis: JSON.parse(row.analysis as string)
-  })));
+  try {
+    const rows = await dbAll("SELECT * FROM analysis_history WHERE startup_id = ? ORDER BY created_at DESC", [parseInt(startupId)]);
+    res.json(rows.map(row => ({
+      ...row,
+      analysis: JSON.parse(row.analysis as string)
+    })));
+  } catch (error) {
+    console.error("Analysis history error:", error);
+    res.status(500).json({ error: "Failed to fetch analysis history" });
+  }
 });
 
 router.post("/competitor-deep-dive", async (req, res) => {
@@ -132,12 +140,12 @@ router.post("/competitor-deep-dive", async (req, res) => {
 
     // Update the analysis in DB with this new deep dive data if startupId provided
     if (startupId) {
-      const startup = db.prepare("SELECT analysis FROM startups WHERE id = ?").get(startupId) as any;
+      const startup = await dbGet("SELECT analysis FROM startups WHERE id = ?", [startupId]);
       if (startup) {
         const analysis = JSON.parse(startup.analysis);
         analysis.deepDive = deepDiveData;
-        db.prepare("UPDATE startups SET analysis = ? WHERE id = ?").run(JSON.stringify(analysis), startupId);
-        db.prepare("INSERT INTO analysis_history (startup_id, analysis) VALUES (?, ?)").run(startupId, JSON.stringify(analysis));
+        await dbRun("UPDATE startups SET analysis = ? WHERE id = ?", [JSON.stringify(analysis), startupId]);
+        await dbRun("INSERT INTO analysis_history (startup_id, analysis) VALUES (?, ?)", [startupId, JSON.stringify(analysis)]);
       }
     }
 
@@ -152,19 +160,23 @@ router.post("/competitor-deep-dive", async (req, res) => {
   }
 });
 
-router.get("/history", (req, res) => {
-  const rows = db.prepare("SELECT * FROM startups ORDER BY created_at DESC").all();
-  res.json(rows.map(row => ({
-    ...row,
-    analysis: JSON.parse(row.analysis as string)
-  })));
+router.get("/history", async (req, res) => {
+  try {
+    const rows = await dbAll("SELECT * FROM startups ORDER BY created_at DESC");
+    res.json(rows.map(row => ({
+      ...row,
+      analysis: JSON.parse(row.analysis as string)
+    })));
+  } catch (error) {
+    console.error("History error:", error);
+    res.status(500).json({ error: "Failed to fetch history" });
+  }
 });
 
-router.delete("/history/:id", (req, res) => {
+router.delete("/history/:id", async (req, res) => {
   const { id } = req.params;
   try {
-    const stmt = db.prepare("DELETE FROM startups WHERE id = ?");
-    const result = stmt.run(id);
+    const result = await dbRun("DELETE FROM startups WHERE id = ?", [parseInt(id)]);
     if (result.changes > 0) {
       res.json({ success: true });
     } else {
